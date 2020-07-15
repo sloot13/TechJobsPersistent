@@ -22,6 +22,7 @@ namespace TechJobsPersistent.Controllers
             context = dbContext;
         }
 
+
         public IActionResult Index()
         {
             List<Job> jobs = context.Jobs.Include(j => j.Employer).ToList();
@@ -29,15 +30,45 @@ namespace TechJobsPersistent.Controllers
             return View(jobs);
         }
 
-        [HttpGet("/Add")]
+        [HttpGet("/AddJob")]
         public IActionResult AddJob()
         {
-            return View();
+            List<Employer> employers = context.Employers.ToList();
+            List<Skill> skills = context.Skills.ToList();
+            AddJobViewModel viewModel = new AddJobViewModel(employers, skills);
+
+            return View(viewModel);
         }
 
-        public IActionResult ProcessAddJobForm()
+        [HttpPost]
+        public IActionResult ProcessAddJobForm(AddJobViewModel viewModel, string[] selectedSkills)
         {
-            return View();
+            if(ModelState.IsValid)
+            {
+                Job job = new Job
+                {
+                    Name = viewModel.Name,
+                    EmployerId = viewModel.EmployerId,
+                    Employer = context.Employers.Find(viewModel.EmployerId)
+                };
+
+                foreach(string selectedskill in selectedSkills)
+                {
+                    JobSkill jobSkill = new JobSkill
+                    {
+                        Job = job,
+                        Skill = context.Skills.Find(int.Parse(selectedskill))
+                    };
+
+                    context.JobSkills.Add(jobSkill);
+                }
+
+                context.Jobs.Add(job);
+                context.SaveChanges();
+
+                return Redirect("/Home");
+            }
+            return View("AddJob", viewModel);
         }
 
         public IActionResult Detail(int id)
